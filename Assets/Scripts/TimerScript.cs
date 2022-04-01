@@ -4,28 +4,29 @@ using UnityEngine.UI;
 public class TimerScript : MonoBehaviour
 {
 	[SerializeField] Text timeText;
-    public int seconds, minutes;
+	public int seconds, minutes;
 
 	private void Start()
 	{
-		seconds = -1;
-		AddToSecond();
+		minutes = 3;
+		seconds = 1;
+		RemoveToSecond();
 	}
 
-	void AddToSecond()
+	void RemoveToSecond()
 	{
-		seconds++;
-		if(seconds > 59)
+		seconds--;
+		if(seconds < 0)
 		{
-			seconds = 0;
-			minutes++;
+			seconds = 59;
+			minutes--;
 		}
-		timeText.text = (minutes < 10 ? "0" :" ") + minutes + ":" + (seconds < 10 ? "0" : " ") + seconds;
-		Invoke(nameof(AddToSecond), time: 1);
+		timeText.text = (minutes < 10 ? "0" :"") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+		Invoke(nameof(RemoveToSecond), time: 1);
 	}
 
 	public void StopTimer()
 	{
-		CancelInvoke(nameof(AddToSecond));
+		CancelInvoke(nameof(RemoveToSecond));
 	}
 }

@@ -17,6 +17,7 @@ public class TaquinTiles : MonoBehaviour
 
 	void Update()
     {
+		//Mouvement vers la case cible
         transform.position = Vector3.Lerp(transform.position, targetPosition, 1f);
 		if(transform.position == correctPosition)
 		{

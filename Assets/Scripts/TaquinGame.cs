@@ -3,14 +3,24 @@ using UnityEngine.UI;
 
 public class TaquinGame : MonoBehaviour
 {
-	[SerializeField] private Transform emptySpace;
+	#region Scripts
+	[SerializeField] private TimerScript time;
 	[SerializeField] private TaquinTiles[] tiles;
+	#endregion
+	
+	[SerializeField] private Transform emptySpace;
+
+	#region UI
 	[SerializeField] private GameObject panelEnd;
+	[SerializeField] private GameObject panelOver;
 	[SerializeField] private Text panelEndTimeText;
 	[SerializeField] private Text recordText;
+	#endregion
+
 	private Camera _camera;
 	private int emptySpaceIndex = 0;
 	private bool _isFinish;
+	private bool _timeOver;
 
 	void Start()
 	{
@@ -25,17 +35,22 @@ public class TaquinGame : MonoBehaviour
 	{
 		if(Input.GetMouseButtonDown(0))
 		{
+			//Raycast au click
 			Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
 			RaycastHit2D hit = Physics2D.Raycast(ray.origin, ray.direction);
 			if(hit)
 			{
-				if(Vector2.Distance(emptySpace.position, hit.transform.position) < 0.08f)
+				//Check si le pièce peut se déplacer sur la case vide
+				if(Vector2.Distance(emptySpace.position, hit.transform.position) < 0.025f)
 				{
+					//Mouvement de la case et l'emplacement vide
 					Vector2 lastEmptySpacePosition = emptySpace.position;
 					TaquinTiles thisTiles = hit.transform.GetComponent<TaquinTiles>();
 					emptySpace.GetComponent<TaquinTiles>().targetPosition = thisTiles.targetPosition;
 					thisTiles.targetPosition = lastEmptySpacePosition;
 					int tileIndex = findIndex(thisTiles);
+
+					//Modification des index
 					tiles[emptySpaceIndex] = tiles[tileIndex];
 					tiles[tileIndex] = emptySpace.GetComponent<TaquinTiles>();
 					emptySpaceIndex = tileIndex;
@@ -43,8 +58,12 @@ public class TaquinGame : MonoBehaviour
 				Debug.Log(hit.transform.name);
 			}
 		}
+
+		#region Fin de Partie
+		//Win
 		if (!_isFinish)
 		{
+			//Compte le nombre de case au bon emplacement
 			int correctTile = 0;
 			foreach (var a in tiles)
 			{
@@ -57,20 +76,22 @@ public class TaquinGame : MonoBehaviour
 			if (correctTile == tiles.Length)
 			{
 				_isFinish = true;
+
+				#region activation et modification UI
 				panelEnd.SetActive(true);
-				var t =	GetComponent<TimerScript>();
-				t.StopTimer();
-				panelEndTimeText.text = "Your Time :   " + (t.minutes < 10 ? "0" : " ") + t.minutes + ":" + (t.seconds < 10 ? "0" : " ") + t.seconds;
-				int bestTime;
-				if (PlayerPrefs.HasKey("bestTime"))
+				time.StopTimer();
+				if (time.seconds == 0)
 				{
-					bestTime = PlayerPrefs.GetInt("bestTime");
+					time.seconds = 60;
+					time.minutes--;
 				}
-				else
-				{
-					bestTime = 999999;
-				}
-				int playerTime = t.minutes * 60 + t.seconds;
+				panelEndTimeText.text = "Your Time :   " + (time.minutes < 10 ? "0" : " ") + (2- time.minutes) + ":" + (time.seconds < 10 ? "0" : "") + (time.seconds > 59 ? "0" : "") + (60 - time.seconds);
+				#endregion
+
+				#region Création Meilleur Score
+				
+			    int bestTime = PlayerPrefs.GetInt("bestTime");
+				int playerTime = time.minutes * 60 + time.seconds;
 				if (playerTime < bestTime)
 					PlayerPrefs.SetInt("bestTime", playerTime);
 				else
@@ -79,10 +100,24 @@ public class TaquinGame : MonoBehaviour
 					int seconds = bestTime - minutes*60;
 					recordText.text = (minutes < 10 ? "0" : " ") + minutes + ":" + (seconds < 10 ? "0" : " ") + seconds;
 				}
+				#endregion
 			}
 		}
+
+		//Lose
+		if (!_timeOver)
+		{
+			var t = GetComponent<TimerScript>();
+			if (time.minutes == 0 && time.seconds == 0)
+			{
+				panelOver.SetActive(true);
+				t.StopTimer();
+			}
+		}
+		#endregion
 	}
 
+	//Tirage aléatoire des positions de cases
 	public void ShuffleTiles()
 	{
 		int inversion;
@@ -96,13 +131,14 @@ public class TaquinGame : MonoBehaviour
 				tiles[randomInt].targetPosition = lastPosition;
 				var tile = tiles[i];
 				tiles[i] = tiles[randomInt];
-				tiles[randomInt] = tile;				
+				tiles[randomInt] = tile;
 			}
 			inversion = GetInversions();
 		}
 		while (inversion % 2 != 0);
 	}
 
+	//Connaître l'index d'une case
 	public int findIndex(TaquinTiles ts)
 	{
 		for(int i = 0; i < tiles.Length; i++)
@@ -115,6 +151,7 @@ public class TaquinGame : MonoBehaviour
 		return -1;
 	}
 
+	//Faire des Inversions afin d'avoir un puzzle soluble
 	int GetInversions()
 	{
 		int inversionsSum = 0;
